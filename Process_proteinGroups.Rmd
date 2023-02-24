@@ -1,0 +1,827 @@
+---
+title: "Filtering, isotopic impurity correction and normalization of MaxQuant's proteinGroups.txt"
+author: "Moritz Madern"
+date: "2023-02-17"
+output: html_document
+---
+
+Data input:
+1) MaxQuant protein table (named "proteinGroups.txt")
+2) isotopic impurity Matrix
+
+Data output:
+1) modified protein table 
+
+
+This script processes MaxQuant's proteinGroups.txt output coming from isobaric labeling experiments. It performs filtering of reverse hits, contaminants and peptides only identified by site, as well as filtering based on valid values and intensity. Further, isobaric impurity correction is performed. Finally, the intensity columns are normalized between samples. The result is exported as a .txt file.
+
+```{r Load packages, echo=FALSE, warning=FALSE, message=FALSE}
+
+## Load packages. If not installed yet, install them prior to running this script!
+library(ggplot2)
+library(RColorBrewer)
+library(MSnbase)
+library(limma)
+library(dendextend)
+library(pals)
+library(plotly)
+library(DESeq2)
+
+
+## Create Results folder
+if (!file.exists("Results")){
+  dir.create("Results")
+}
+
+```
+
+
+```{r Parameters}
+
+## Specify file path to proteinGroups.txt file
+filename_path = "proteinGroups.txt"
+
+## Optional: Correct for isotopic impurities of reporter ions by specifying an impurity matrix. If no impurity correction should be performed, set this parameter to NULL. Columns represent reporter channels, and rows represent relative signal percentages. The order of columns and rows has to match that of the reporter_ions object specified above. For more information on how to construct an impurity matrix, please refer to the respective guide from "MSnBase": https://rdrr.io/github/lgatto/MSnbase/man/purityCorrect-methods.html. 
+impuritymatrix = as.matrix(read.csv(file="./impurity_matrix_tmtpro.csv" , sep=",", header=TRUE, row.names = 1))  
+
+## Specify sampl groups as character vector.
+groups = c("blank", "blank", "blank", "Group0", "Group6", "Group0", "Group6", "Group0", "Group6", "blank", "Group9", "Group12", "Group9","Group12", "Group9", "Group12")
+
+## Specify sample names as character vector.
+samplenames = c("blank", "blank", "blank", "Group0.1", "Group6.1", "Group0.2", "Group6.2", "Group0.3", "Group6.3", "blank", "Group9.1", "Group12.1", "Group9.2","Group12.2", "Group9.3", "Group12.3")
+
+## Optional: Specify the sample group names that represent empty channels in the input data (e.g. in case when using 16plex kit but only 12 channels are being used for labeling). Their respective reporter ion columns will be filtered out. This parameter requires specification of the empty group label as listed in the parameter "groups" above. If no group name corresponds to empty channels, specify as NULL.
+groups_empty = "blank"
+
+## Optional: Specify colors of each group as named character vector (entries correspond to colors, names correspond to group names). If specified NULL, will be given colors from RcolorBrewer palette.
+colors_groups <- NULL
+
+## Optional: Specify batch (if no batch present, define as NULL) as character vector. Will be incorporated in case of differential expression testing
+batch <- NULL
+
+## Specify intensity column pattern to normalize as regular expression pattern. 
+intensityCol_pattern = "Reporter[.]intensity[.][0-9]+[.]MS3_prot$"
+
+## Specify normalization method (supported is "loess", "DESeq" and "median")
+norm_strategy <- "loess"
+
+## Optional: Specify which groups should be included in a 1-way ANOVA. if NULL, all groups will be used
+groups_anova <- NULL
+
+## Specify name of the output file string (without .txt extension). If NULL, will be named according to input file string
+output_name <- "processed_proteinGroups_MS3"
+
+
+## Note: Parameters that are described as "Optional" can be ignored if certain steps are to be skipped. 
+## Note: If specified correctly, no other user input is required for the remainder of the script!
+## Note: If the script produces any errors, please check if all parameters were specified correctly!
+
+```
+
+
+```{r Check some parameters}
+
+## Specify color vector as named vector
+if (is.null(colors_groups)){
+  unique_groups <- unique(groups)
+  colors <- RColorBrewer::brewer.pal(n=length(unique_groups), name="Set1")
+  colors_groups = setNames(colors, nm=unique_groups)
+}
+
+
+## Make sure that batch is a character vector
+if(!is.null(batch)){
+  batch <- as.character(batch)
+}
+
+```
+
+
+```{r Write required functions, echo=FALSE, warning=FALSE}
+
+### Impurity correction function ###
+impurity_correction <- function(impuritymatrix, df, reporterIon_columnnames){
+  
+  # read in impurity matrix to be used to correct for isotopic impurities
+  inverted_transposed_impuritymatrix <- solve(t(impuritymatrix))  # using linear algebra, this matrix can be used to calculate the corrected intensities
+    
+  # manually calculate impurity correction:
+  m_uncorrected <- as.matrix(df[,reporterIon_columnnames])
+  m_uncorrected[is.na(m_uncorrected)] <- 0
+  m_corrected <- m_uncorrected
+    
+  for (i in 1:nrow(m_uncorrected)){
+    # extract row_i
+    row_i <- m_uncorrected[i,]
+      
+    # calculate corrected intensities, replace any negative values with 0
+    row_i_corrected <- inverted_transposed_impuritymatrix %*% row_i
+    row_i_corrected <- pmax(row_i_corrected,0)
+      
+    # store in m_corrected 
+    m_corrected[i,] <- row_i_corrected
+  }
+    
+  # finally, replace values that were originally < 1  with 0 ("i.e. NA"). Else they would mimic real observed intensities, which they are not!
+  m_corrected[m_uncorrected < 1] <- 0
+    
+  # plot before and after correction:
+  par(mfrow=c(1,2))
+  barplot(colSums(m_uncorrected, na.rm = TRUE), las=2, main="Total intensity before impurity correction", col="skyblue", border="skyblue", cex.names=0.8, cex.main=0.8)
+  barplot(colSums(m_corrected,na.rm=TRUE), las=2, main="Total intensity after impurity correction", col="skyblue", border="skyblue", cex.names=0.8, cex.main=0.8)
+    
+  # replace uncorrected intensities in df with corrected intensities:
+  df[,reporterIon_columnnames] <- m_corrected
+  
+  # return df with corrected reporter intensities
+  return(df)
+}
+
+
+
+### LOESS normalization function ###
+loess_norm <- function(m){
+  m[m==0] <- NA
+  m_copy_log <- log2(m)  
+  m_norm <- 2^normalizeBetweenArrays(m_copy_log, method="cyclicloess", cyclic.method = "fast")
+  return(m_norm)
+}
+
+
+
+### Write DESeq normalization function (using DESeq2's size factor estimation)
+DESeq_norm <- function(m, sizefactors=NULL){
+  
+  # create counts from intensity data in the required range
+  m_copy <- m
+  m_copy[is.na(m_copy)] <- 0
+  m_counts <- round(log2(m_copy+1)*1000,digit=0)
+  library(DESeq2)
+  
+  
+  # if no sizefactors are supplied, calculate them based on m
+  if (is.null(sizefactors)){
+    # create an object summarized experiment class
+    dds <- DESeqDataSetFromMatrix(countData = m_counts,
+                                  colData = data.frame(condition=rep("group",times=ncol(m_counts))),
+                                  design =  ~ 1)
+    
+    # calculate normalization factors via DESeq's estimateSizeFactors(). Save them in working directory (so they can be used later on a different table of the same experiment) 
+    sizefactors <- estimateSizeFactors(dds)$sizeFactor
+    if (!file.exists("Results")){
+      dir.create("Results")
+    }
+    save(sizefactors, file=paste0(getwd(),"/Results/sizefactors.Rdata"))
+  } else {
+    sizefactors=sizefactors
+  }
+  
+  # perform normalization by column-wise multiplication with size-factors
+  m_counts_norm  <- sweep(m_counts, STATS=1/sizefactors, FUN="*", MARGIN = 2)
+  
+  # retransform to intensity range 
+  m_norm <- 2^(m_counts_norm/1000) - 1
+  
+  # return normalized intensity matrix
+  return(m_norm)
+}
+
+
+
+### median normalization function ###
+median_norm <- function(m){
+  m[m==0] <- NA
+  m_copy_log <- log2(m)  
+  colmed <- apply(m_copy_log, FUN=median, MARGIN = 2, na.rm=TRUE)
+  delta <- colmed - median(colmed) 
+  m_norm <- 2^sweep(m_copy_log, STATS=delta, FUN="-", MARGIN=2)
+  return(m_norm)
+}
+
+
+
+### PCA plot function ###
+PCA_plot <- function(m, groups, samplenames, batch, legend_colors, plot_path=NULL, title=""){
+
+  # replace NAs with 0
+  m[is.na(m)] <- 0
+  
+  # calculate PCA
+  pca_res <- prcomp(t(m))
+  rot_mat <- pca_res$rotation
+  res_final <- as.matrix(scale(t(m), center=TRUE, scale=FALSE)) %*% rot_mat
+  eigenvectors <- pca_res$sdev^2
+  anteil_var_pca1 <- round(eigenvectors[1]/sum(eigenvectors),digits=3)
+  anteil_var_pca2 <- round(eigenvectors[2]/sum(eigenvectors),digits=3)
+  
+  # create groups
+  groups <- factor(groups, levels=names(legend_colors))
+  colors <- legend_colors
+  names(colors) <- levels(groups)
+  colors <- colors[names(colors) %in% groups]
+  
+  # ggplot PCR
+  if(is.null(batch)){
+    df_gg <- as.data.frame(res_final)
+    df_gg$samplenames <- samplenames
+    df_gg$groups <- groups
+    gg <- ggplot(df_gg) + 
+      geom_point(aes(x=PC1, y=PC2, col=groups, text=samplenames),size=5) +
+      scale_color_manual(values=colors)+
+      xlab(paste0("PC1  ","(",anteil_var_pca1*100,"%",")")) +
+      ylab(paste0("PC2  ","(",anteil_var_pca2*100,"%",")")) +
+      ggtitle(title) +
+      theme_bw()
+  } else {
+    df_gg <- as.data.frame(res_final)
+    df_gg$samplenames <- samplenames
+    df_gg$groups <- groups
+    df_gg$batch <- as.factor(batch)
+    gg <- ggplot(df_gg) + 
+      geom_point(aes(x=PC1, y=PC2, col=groups, text=samplenames, shape=batch),size=5) +
+      scale_color_manual(values=colors)+
+      xlab(paste0("PC1  ","(",anteil_var_pca1*100,"%",")")) +
+      ylab(paste0("PC2  ","(",anteil_var_pca2*100,"%",")")) +
+      ggtitle(title) +
+      theme_bw()
+  }
+  
+  # save plot
+  if(!is.null(plot_path)){
+    ggsave(plot=gg, filename=plot_path, width = 6, height = 4)
+  }
+  
+  # print plot
+  ggplotly(gg)
+}
+
+
+
+### DE testing function using limma ###
+DE_limma <- function(m,
+                    groupname1 = groupname1,
+                    groupname2 = groupname2,
+                    groups,
+                    trend_limma=FALSE,
+                    batch=batch){
+  
+  # convert groups to a factor
+  factor_groups <- factor(groups)
+  
+  # convert batch to a factor
+  factor_batch <- factor(batch)
+  
+  # define contrast vector x
+  x <- paste0(groupname2, "-", groupname1)
+  
+  # test limma when no batch is specified
+  if(is.null(batch)){
+    design <- model.matrix(~0 +factor_groups)
+    colnames(design) <- sub(colnames(design), pattern="factor_groups", replacement = "")
+    fit <- lmFit(m, design)
+    contrast_matrix <- makeContrasts(contrasts = x, levels=colnames(design))
+    fit_contrasts <- contrasts.fit(fit, contrast_matrix)
+    fit_contrasts <- eBayes(fit_contrasts)
+    LIMMAresults <- topTable(fit_contrasts, number = Inf, sort.by = "none")
+  }
+  
+  # test limma when batch is specified
+  if(!is.null(batch)){
+    design <- model.matrix(~0 +factor_groups)
+    colnames(design) <- sub(colnames(design), pattern="factor_groups", replacement = "")
+    dupcor <- duplicateCorrelation(m,design,block=factor_batch)
+    fit <- lmFit(m, design, block= factor_batch, correlation = dupcor$consensus)
+    contrast_matrix <- makeContrasts(contrasts = x, levels=colnames(design))
+    fit_contrasts <- contrasts.fit(fit, contrast_matrix)
+    fit_contrasts <- eBayes(fit_contrasts, trend = trend_limma, robust = TRUE)
+    LIMMAresults <- topTable(fit_contrasts, number = Inf, sort.by = "none")
+  }
+  
+  # exctract limma results (fc, p.val and adj.p.val) for plotting
+  fc <- LIMMAresults$logFC
+  fc[is.na(fc)] <- 0
+  p_val <- LIMMAresults$P.Value
+  p_val[is.na(p_val)] <- 1
+  
+  # plot volcano plot (p-value vs fc)
+  par(mfrow=c(1,1))
+  par(mar=c(4,4,4,5))
+  par(mgp=c(2.5,0.8,0))
+  par(xpd=TRUE)
+  plot(x= fc, y= -log(p_val,base=10), pch=19, cex=1, xaxt="n", yaxt="n", xlab= paste0(groupname2, " / ", groupname1, " \nfold change [log2]" ), ylab = "- log10 (p-value)",main= "Volcano Plot", cex.lab=0.7, cex.main= 0.8, font.lab=2, xlim=c(-max(abs(fc)),max(abs(fc))), bty="n", col=rgb(red=100, green=100, blue=100, alpha=10, maxColorValue = 255))
+  axis(side=1, cex.axis=0.7)
+  axis(side=2, cex.axis=0.7, las=2, mgp=c(2.5, 0.8, 0))
+  
+  # change colnames of results table to indicate specific comparison
+  colnames(LIMMAresults) <- paste0(colnames(LIMMAresults), "__", x)
+  
+  # return LIMMAresults
+  return(LIMMAresults)
+}
+
+
+
+### Heatmap plot function ###
+heatmap_plot <- function(m, groups, legend_colors, samplenames, dendrogram="column", labrow="", bool_rowv=TRUE, bool_colv = TRUE, plot_path=NULL, title=""){
+  
+  # load packages
+  library(gplots)
+  
+  # create groups
+  names(colors) <- levels(groups)
+  
+  # replaces NAs with 0
+  m[is.na(m)] <- 0
+  colnames(m) <- samplenames
+  
+  # should rows be reordered
+  if (bool_rowv){
+    rowv <- as.dendrogram(hclust(dist(m)))
+  } else {
+    rowv <- FALSE
+  }
+  
+  # should columns be reordered
+  if (is.logical(bool_colv)){
+    if (bool_colv){
+      colv <- as.dendrogram(hclust(dist(t(m))))
+    } else {
+      colv <- FALSE
+    }
+  } else {
+    colv <- bool_colv
+  }
+  
+  # specify colors
+  if(is.null(legend_colors)){
+    sidecolors <- rep("white", times=ncol(m))
+  } else{
+    sidecolors <- legend_colors[groups]
+  }
+  
+  # create color palette
+  heatmap_pal <- colorRampPalette(rev(brewer.pal(11, "RdBu")))
+  
+  # plot heatmap for centered log2 intensities if centered
+  min_m <- min(m, na.rm=TRUE)
+  max_m <- max(m, na.rm=TRUE)
+  heatmap.2(m,         
+            Rowv = rowv,
+            Colv=colv,
+            labRow=labrow, margins=c(8,8), ColSideColors = sidecolors, trace="none",col=heatmap_pal(50),
+            breaks = seq(from=-2,to=2, length.out=51), 
+            symkey = F,
+            dendrogram=dendrogram, main=title)
+  
+  # save plot if specified 
+  if(!is.null(plot_path)){
+    pdf(file=plot_path, width = 6, height = 6)
+    heatmap.2(m,         
+              Rowv = rowv,
+              Colv=colv,
+              labRow=labrow, margins=c(8,8), ColSideColors = sidecolors, trace="none",col=heatmap_pal(50),
+              breaks = seq(from=-2,to=2, length.out=51), 
+              symkey = F,
+              dendrogram=dendrogram,
+              main=title)
+    dev.off()
+  }
+}
+
+```
+
+
+```{r Read in data and remove unwanted or redundant intensity columns, echo=FALSE, warning=FALSE}
+
+## Read in file
+df <-  read.delim(filename_path, sep="\t", header=TRUE)
+writeLines("Dimensions of protein table: ")
+dim(df)
+writeLines("\nColumn names of protein table:")
+names(df)
+
+
+## Save metadata (non-intensity columns) separately:
+df_meta <- df[,!grepl(names(df), pattern="^Reporter[.]intensity")]
+
+
+## Extract specified intensity columns by matching to specific pattern: "Reporter[.]intensity[.][0-9]*$". These reporter ions columns will be used in this script!
+writeLines("\nMatching with string pattern defines following columns as reporter ion intensity columns")
+grep(names(df), pattern = intensityCol_pattern, value = TRUE)
+df_int <- df[,grepl(names(df), pattern = intensityCol_pattern)]
+
+
+## Add reporter intensities (for each ending separately) to metadata. note: this step got rid of other redundant reporter intensity columns
+df <- cbind(df_meta, df_int)
+
+
+## Replace reporter ion intensity column names with uniform name
+bool_reporter <- grepl(names(df), pattern="Reporter[.]intensity")
+new_name <- paste0("Reporter.intensity_", 1:sum(bool_reporter))
+names(df)[bool_reporter] <- new_name
+
+
+## Document columns of new protein table
+writeLines("\nColumn names of protein table after selecting and renaming of relevant intensity columns:")
+names(df)
+
+```
+
+
+```{r Extract missing Gene names from Fasta header}
+
+## Extract gene name column
+writeLines(paste0("Number of Gene name entries that are empty before matching with fasta header: ", sum(df$Gene.names == "")))
+
+
+## Extract Fasta Headers, and within them, gene names.
+gene_names <- character(nrow(df))        # initialize final vector
+fasta_headers <- df$Fasta.headers
+fasta_headers <- ifelse(substring(fasta_headers, first=1, last=1)==";",
+                          no=fasta_headers, 
+                          yes=substring(fasta_headers, first=regexpr(fasta_headers,pattern="[A-Za-z0-9]"), last=10000))
+fasta_headers_split <- strsplit(fasta_headers, split=";")
+for (i in 1:length(fasta_headers_split)){
+  # in case protein i had a valid entry already, take the original entry
+  if ("Gene.names" %in% names(df) && !df$`Gene.names`[i]== ""){
+    gene_names[i] <- df$Gene.names[i]
+    next()
+  }
+  fasta_headers_split_i <- fasta_headers_split[[i]]
+  if (length(fasta_headers_split_i) > 0 && grepl(fasta_headers_split_i,pattern="GN=")){
+      gene_names_split_i <- substring(fasta_headers_split_i ,first= regexpr(fasta_headers_split_i,pattern="GN=") + 3, last=nchar(fasta_headers_split_i))
+  } else{
+      gene_names_split_i <- substring(fasta_headers_split_i ,first = 1, last=nchar(fasta_headers_split_i))
+  }
+  gene_names_split_i
+  gene_names_split_i <- substring(gene_names_split_i, first=1, last=regexpr(gene_names_split_i, pattern=" |$")-1)
+  gene_names_split_i
+  if(length(gene_names_split_i)>1){
+    gene_names_i <- paste0(gene_names_split_i, collapse=";")
+  } else{
+    gene_names_i <- gene_names_split_i
+  }
+  gene_names[i] <- ifelse(length(gene_names_i)>0, yes=gene_names_i, no="")
+}
+
+
+## Replace old vector with new one
+df$Gene.names <- gene_names
+writeLines(paste0("\nNumber of Gene name entries that are empty after matching with fasta header: ", sum(df$Gene.names == "")))
+
+```
+
+
+```{r Filter out contaminants and reverse hits and for at least 2 razor+unique peptides , echo=FALSE, warning=FALSE}
+
+## Before contaminant filtering
+writeLines("Number of proteins before filtering CONs, reverse, only by site, min 2 peptides:")
+nrow(df)
+
+
+## Filter out contaminants and reverse
+bool_kick <- df$Potential.contaminant == "+"
+df <- df[!bool_kick, ]
+bool_kick <- df$Reverse == "+"
+df <- df[!bool_kick,]
+
+
+## Filter out only identified by site
+df <- df[df$Only.identified.by.site=="",]
+
+
+## Filter for at least 2 razor + unique peptides
+bool_keep <- df$Razor...unique.peptides >= 2
+df <- df[bool_keep,]
+
+
+## After contaminant and reverse filtering
+writeLines("\n Number of proteins after filtering CONs, reverse, only by site, min 2 peptides")
+nrow(df)
+
+```
+
+
+```{r Perform impurity correction on reporter ion intensities, echo=FALSE, warning=FALSE}
+
+## Check names of df, and find reporter intensity column names. 
+names_reporter <- grep(names(df), pattern="Reporter[.]intensity_", value=TRUE)
+
+
+## Do impurity correction
+df_corr <- impurity_correction(df = df, 
+                               reporterIon_columnnames = names_reporter,
+                               impuritymatrix = impuritymatrix)
+
+```
+
+
+```{r OPTIONAL: Kick out reporter ion intensity columns corresponding to empty channels}
+
+## Check names of df, and find reporter intensity column mames. 
+names_reporter <- grep(names(df_corr), pattern="Reporter[.]intensity_", value=TRUE)
+
+
+## Check if parameters specify any empty reporter ion columns
+if (!is.null(groups_empty)){
+  
+  # Extract metadata and reporter ion data
+  df_reporter <- df_corr[,names_reporter]
+  df_meta <- df_corr[,!names(df_corr) %in% names_reporter]
+  
+  # Subselect only non empty channels
+  df_reporter_nonEmpty <- df_reporter[,!groups %in% groups_empty]
+  
+  # Reconstitute full dataframe
+  df_corr <- cbind(df_meta, df_reporter_nonEmpty)
+  
+  # Print column names of reporter ion columns before and after filtering
+  writeLines("Reporter ion column names before filtering:")
+  print(names(df_reporter))
+  writeLines("\nReporter ion column names after filtering:")
+  print(names(df_reporter_nonEmpty))
+  
+  # redefine some objects for downstream analysis
+  if (!is.null(batch)){
+    batch <- batch[!groups %in% groups_empty]
+  }
+  samplenames <- samplenames[!groups %in% groups_empty]
+  groups <- groups[!groups %in% groups_empty]
+}
+
+```
+
+
+```{r Filter rows based on minimum valid values per group - at least 3 in one group, echo=FALSE, warning=FALSE}
+
+## Check names of df, and find reporter intensity column names. 
+names_reporter <- grep(names(df_corr), pattern="Reporter[.]intensity_", value=TRUE)
+
+
+## Report dimensions before filtering
+writeLines("Dimensions before filtering")
+dim(df_corr)
+
+
+## Extract reporter ion intensities
+bool_reporter <- grepl(names(df_corr), pattern="Reporter[.]intensity")
+m_reporter <- as.matrix(df_corr[,bool_reporter])
+m_reporter[m_reporter <= 1] <- NA
+m_reporter[m_reporter == 0] <- NA
+
+
+## Create valid value matrix
+m_validvalues <- !is.na(m_reporter)
+
+
+## Initiate helper matrix (one column for each group)
+n_unique_groups <- length(unique(groups))
+unique_groups <- unique(groups)
+bool_matrix <- matrix(rep(TRUE,times=nrow(df_corr)*n_unique_groups), ncol=n_unique_groups)
+colnames(bool_matrix) <- unique_groups
+  
+
+## Create logical vector indicating which rows to keep; then filter
+for (i in unique_groups){
+  m_i <- m_validvalues[,groups==i,drop=FALSE]
+  rowsum_i <- apply(m_i,MARGIN = 1, FUN=sum)
+  rowsum_i_bool <- rowsum_i >= 3
+  bool_matrix[,i] <- rowsum_i_bool
+}  
+bool_keep <- apply(bool_matrix, MARGIN = 1, FUN=any)
+df_corr_filtered <- df_corr[bool_keep,]
+
+
+## Report dimensions after filtering based on valid values
+writeLines("\nDimensions after filtering")
+dim(df_corr_filtered)
+
+```
+
+
+```{r Normalization between samples, echo=FALSE, warning=FALSE}
+
+## Check names of df, and find reporter intensity columns names. 
+names_reporter <- grep(names(df_corr_filtered), pattern="Reporter[.]intensity_", value=TRUE)
+
+
+## Extract reporter intensities, replace intensities smaller 1 with NA
+m_reporter <- as.matrix(df_corr_filtered[,names_reporter])
+m_reporter[m_reporter < 1] <- NA
+
+
+## Plot colSums before normalization
+barplot(colSums(m_reporter, na.rm=TRUE), main="total intensity before norm", las=2, col=colors_groups[groups], border=colors_groups[groups], names.arg = samplenames, cex.names=0.8)
+
+
+## Plot boxplots before normalization
+boxplot(log2(m_reporter), main="log2 intensity before norm", col=colors_groups[groups], xaxt="n", yaxt="n")
+axis(side=1, at= 1:length(samplenames),las=2, labels=samplenames, cex.axis = 0.75)
+axis(side=2)
+
+
+## Do normalization 
+if (norm_strategy == "loess"){
+  m_reporter_norm <- loess_norm(m_reporter)
+}
+if (norm_strategy == "DESeq"){
+  m_reporter_norm <- DESeq_norm(m_reporter)
+}
+if (norm_strategy == "median"){
+  m_reporter_norm <- median_norm(m_reporter)
+}
+
+
+## Plot colSums after normalization
+barplot(colSums(m_reporter_norm, na.rm=TRUE), main="total intensity after norm", las=2, col=colors_groups[groups], border=colors_groups[groups], names.arg = samplenames, cex.names=0.8)
+
+
+## Plot boxplots after norm
+boxplot(log2(m_reporter_norm), main="log2 intensity after norm", col=colors_groups[groups], las=2, xaxt="n", yaxt="n", ylab="log2 intensity")
+axis(side=1, at= 1:length(samplenames),las=2, labels=samplenames, cex.axis = 0.75)
+axis(side=2)
+
+
+## Do pair plotting, only using 6 columns
+pairs(log2(m_reporter_norm[,1:6]), cex=0.1, main="pairs scatterplot after normalization")
+
+
+## Replace old intensities with normalized intensities
+df_corr_filtered_norm <- df_corr_filtered
+df_corr_filtered_norm[,names_reporter] <- m_reporter_norm
+
+```
+
+
+```{r Optional: Filter proteins based on intensity (1% intensity quantile threshold), echo=FALSE, warning=FALSE}
+
+## Extract reporter intensities
+bool_reporter <- grepl(names(df_corr_filtered_norm), pattern="Reporter[.]intensity")
+m_reporter_norm <- as.matrix(df_corr_filtered_norm[,bool_reporter])
+writeLines(paste0("Number of proteins before filtering: ", nrow(df_corr_filtered_norm)))
+
+
+## Calculate the average of the top 3 values
+mean_top3 <- apply(m_reporter_norm, MARGIN = 1, FUN=function(x){
+                                  x_sort <- sort(x, decreasing = TRUE)
+                                  if(length(x_sort)>=3){
+                                    res <- mean(x_sort[1:3])
+                                  } else{
+                                    res <- mean(x_sort[1:length(x_sort)])
+                                  }
+                                  return(res)
+                                  })
+
+## Check where the cutoff would lie when filtering at 1% quantile
+hist(log2(mean_top3), breaks = 100, main="mean top3 channel intensity")
+quantile_1p <- quantile(log2(mean_top3), probs = 0.01, na.rm = TRUE)
+abline(v=quantile(log2(mean_top3), probs = 0.01, na.rm = TRUE), col="red", lwd=2)
+
+
+## Perform filtering
+df_below_int_filter <- m_reporter_norm[log2(mean_top3) < quantile_1p,]
+df_above_int_filter <- m_reporter_norm[log2(mean_top3) >= quantile_1p,]
+df_corr_filtered_norm <- df_corr_filtered_norm[log2(mean_top3) >= quantile_1p,]
+writeLines(paste0("\nNumber of proteins after filtering: ", nrow(df_corr_filtered_norm)))
+
+
+## Investigate distribution of NAs in data
+writeLines("\nHow many NAs remain in quantitative data:")
+sum(is.na(df_above_int_filter))
+writeLines("\nHow many NAss were just filtered out by average top3 intensity cutoff:")
+sum(is.na(df_below_int_filter))
+
+```
+
+
+```{r Barplot, PCA and Heatmap, echo=FALSE, warning=FALSE}
+
+## Check names of df, and find reporter intensity columns names. 
+names_reporter <- grep(names(df_corr_filtered_norm), pattern="Reporter[.]intensity_", value=TRUE)
+
+
+## Extract reporter intensity matrix
+m_reporter <- as.matrix(df_corr_filtered_norm[,names_reporter])
+barplot(colSums(m_reporter, na.rm=TRUE), las=2, cex.names = 0.8, col=colors_groups[groups], border=colors_groups[groups], main="Total intensity")
+
+
+## Plot PCA
+PCA_plot(m=log2(m_reporter),
+         groups = groups,
+         samplenames = samplenames,
+         legend_colors = colors_groups,
+         batch=NULL)
+
+## Plot heatmap of centered (to 0) log2 intensities
+heatmap_plot(m=t(scale(t(log2(m_reporter)), scale=FALSE)),
+         groups = groups,
+         samplenames = samplenames,
+         legend_colors = colors_groups)
+
+```
+
+
+```{r Calculate ANOVA between all groups}
+
+## extract m
+m <- log2(as.matrix(df_corr_filtered_norm[,names_reporter]))
+
+## subselect 
+if (is.null(groups_anova)){groups_anova <- groups}
+bool_subselect <- groups %in% groups_anova
+m_anova <- m[,bool_subselect]
+groups_anova <- groups[bool_subselect]
+
+## calculate ANOVA p-value
+df_corr_filtered_norm$pval_ANOVA_allGroups <- apply(m_anova, MARGIN = 1, FUN=function(x){
+                      x <- as.numeric(x)
+                      res <- aov(x ~ groups_anova )
+                      if (!is.null(summary(res)[[1]]$"Pr(>F)"[1])){
+                        return(summary(res)[[1]]$"Pr(>F)"[1]) 
+                      } else {return (NA)}
+                    })
+df_corr_filtered_norm$adj.pval_ANOVA_allGroups <- p.adjust(p = df_corr_filtered_norm$pval_ANOVA_allGroups, method = "BH")
+
+## show p-value histogram
+hist(df_corr_filtered_norm$pval_ANOVA_allGroups, breaks=50, col="grey", border="grey", main="ANOVA p-value histogram", xlab="p-value")
+hist(df_corr_filtered_norm$adj.pval_ANOVA_allGroups, breaks=50, col="orange", border="orange", main="ANOVA FDR-adj. p-value histogram", xlab="FDR-adj. p-value")
+
+```
+
+
+```{r Optional: Differential Expression testing , echo=FALSE, warning=FALSE}
+
+## extract reporter intensity matrix
+m <- log2(as.matrix(df_corr_filtered_norm[,names_reporter]))
+
+
+## define groups
+groups
+
+
+## define groupname_1
+groupname1 <- "Group6"
+
+
+## define groupname_1
+groupname2 <- "Group9"
+
+
+## DE testing
+DE_res <- DE_limma(m=m,
+                   groupname1 = groupname1,
+                   groupname2 = groupname2,
+                   groups = groups,
+                   batch=batch)
+
+## add DE_res to dataframe
+df_corr_filtered_norm <- cbind(df_corr_filtered_norm, DE_res)
+
+
+```
+
+
+```{r Write table, echo=FALSE, warning=FALSE}
+
+## log2 reporter ion intensities
+bool_reporter <- grepl(names(df_corr_filtered_norm), pattern="Reporter[.]intensity")
+df_corr_filtered_norm[,bool_reporter] <- log2(df_corr_filtered_norm[,bool_reporter])
+
+
+## rename reporter ion column names
+final_reporter_colnames <- paste0("log2_", names(df_corr_filtered_norm)[bool_reporter],"__",samplenames)
+names(df_corr_filtered_norm)[bool_reporter] <- final_reporter_colnames
+
+
+## if no specifc output name was given, name resulting table based on input file's name
+if (is.null(output_name)){
+  ind_substring <- rev(unlist(gregexpr(filename_path, pattern="[\\]|[/]")))[1]
+  outputname_path <- paste0("./Results/filtered_normalized_",substring(filename_path, first = ind_substring + 1, last=nchar(filename_path)))
+} else {
+  outputname_path <- paste0("./Results/",output_name,".txt")
+}
+
+
+## generate output table
+write.table(df_corr_filtered_norm, file = outputname_path, sep = "\t", col.names = TRUE, row.names=FALSE, quote=FALSE)
+
+
+## Report about the export
+writeLines("The result table can be found in:")
+print(outputname_path)
+
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
