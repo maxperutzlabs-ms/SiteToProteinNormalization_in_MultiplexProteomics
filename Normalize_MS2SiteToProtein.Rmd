@@ -96,7 +96,7 @@ renorm_strategy = "loess"
 samplenames_kick = c("Group0.1", "Group0.2", "Group0.3")
 
 ## Optional: specify output name of resulting data (omit file ending!). If NULL, result will be saved with prefix "protein_normalized_" and further named based on input site table.
-output_name = "SiteMS2ToProteinMS3"
+output_name = NULL
 
 
 
@@ -1114,7 +1114,7 @@ if (!is.null(batch)){
 # If no output name was given, name resulting table based on input file's name
 if (is.null(output_name)){
   ind_substring <- rev(unlist(gregexpr(filepath_siteTable, pattern="[\\]|[/]")))[1]
-  outputname_path <- paste0("Results/SiteToProtein_",substring(filepath_siteTable, first = ind_substring + 1, last=nchar(filepath_siteTable)))
+  outputname_path <- paste0("Results/SiteToProtein_normalized_",substring(filepath_siteTable, first = ind_substring + 1, last=nchar(filepath_siteTable)))
 } else {
   outputname_path <- paste0("Results/",output_name,".txt")
 }
