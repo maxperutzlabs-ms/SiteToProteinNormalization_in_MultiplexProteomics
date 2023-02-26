@@ -95,7 +95,7 @@ renorm_strategy = "loess"
 ## Optional: Specify sample names as character vector that are non-empty (i.e. labeled) but should be kicked out (e.g. reference channels, outliers, etc.) for the subsequent analysis. Importantly, the specified samples are kicked only after the interference adjustment step, prior to site-to-protein normalization.
 samplenames_kick = c("Group0.1", "Group0.2", "Group0.3")
 
-## Optional: specify output name of resulting data (omit file ending!). If NULL, result will be saved with prefix "protein_normalized_" and further named based on input site table.
+## Optional: specify output name of resulting data (omit file ending!). If NULL, result will be saved with prefix "SiteToProtein_normalized_" and further named based on input site table.
 output_name = NULL
 
 
