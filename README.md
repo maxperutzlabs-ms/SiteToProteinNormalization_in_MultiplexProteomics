@@ -1,5 +1,5 @@
 # SiteToProteinNormalization_in_MultiplexProteomics
-An R implementation for site-to-protein normalization in MS2-based multiplex proteomics. By accounting for reporter ion interference, the workflow mitigates bias in site-to-protein normalized abundances arising from ratio compression effects. Currently supports MaxQuant output only. 
+An R implementation for site-to-protein normalization in MS2-based multiplex proteomics. By accounting for reporter ion interference, the workflow mitigates bias in protein-normalized site relative abundances arising from ratio compression effects. Currently supports MaxQuant output only. 
 
 
 
