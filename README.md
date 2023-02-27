@@ -36,7 +36,7 @@ This workflow builds on the methodology and computational tools of [interference
 
 Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. The whole analysis pipeline is summarized by this graph:
 
-INSERT PIC HERE
+![alt text](https://github.com/moritzmadern/SiteToProteinNormalization_in_MultiplexProteomics/tree/main/img/workflow_normToMS2Proteins.png?raw=true)
 
 
 
