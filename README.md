@@ -38,6 +38,7 @@ Note that all Thermo raw files of the experiment need to be searched together in
 
 ![Screenshot](img/workflow_normToMS2Proteins.png)
 
+In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermediate or final data output.
 
 
 ## Data Input [using MS3-quantified Poteins]
@@ -52,7 +53,9 @@ Note that all Thermo raw files of the experiment need to be searched together in
 
 Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. The whole analysis pipeline is summarized by this graph:
 
-INSERT PIC HERE
+![Screenshot](img/workflow_normToMS3Proteins.png)
+
+In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermediate or final data output.
 
 
 
