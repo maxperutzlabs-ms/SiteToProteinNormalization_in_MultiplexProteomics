@@ -34,7 +34,7 @@ This workflow builds on the methodology and computational tools of [interference
 
 - A MaxQuant protein table **proteinGroups.txt**.
 
-Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. The whole analysis pipeline is summarized by this graph:
+Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. An example of the entire workflow for quantified acetyl sites is summarized by this graph:
 
 ![Screenshot](img/workflow_normToMS2Proteins.png)
 
@@ -51,7 +51,7 @@ In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermed
 
 - Optional: An isotopic impurity matrix for isotopic impurity correction of MS3-quantified protein intensities in proteinGroups.txt (unless performed by search engine).
 
-Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. The whole analysis pipeline is summarized by this graph:
+Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. An example of the entire workflow for quantified acetyl sites is summarized by this graph:
 
 ![Screenshot](img/workflow_normToMS3Proteins.png)
 
