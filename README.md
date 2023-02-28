@@ -45,7 +45,7 @@ In blue: MaxQuant output; in green: R-scripts; in orange: intermediate or final 
 
 ## Data Input [MS3-quantified Poteins]
 
-- A modified PSM table **modified_PSM.txt**, the result table of [interference modeling](https://github.com/moritzmadern/InterferenceModeling_in_MultiplexProteomics) containing PSM level data of PTM-enriched measurements. By extension, the necessary input for the interference modeling workflow is required (e.g. Thermo raw files, MaxQuant's **msms.txt**, and more).
+- A modified PSM table **modified_PSM.txt**, which is the final output of [interference modeling](https://github.com/moritzmadern/InterferenceModeling_in_MultiplexProteomics) containing PSM level data of PTM-enriched measurements. By extension, the necessary input for the interference modeling workflow is required (e.g. Thermo raw files, MaxQuant's **msms.txt**, and more).
 
 - A MaxQuant site table, e.g. **Acetyl (K)Sites.txt**.
 
