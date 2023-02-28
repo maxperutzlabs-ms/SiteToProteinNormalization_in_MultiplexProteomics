@@ -39,7 +39,7 @@ Note that all Thermo raw files of the experiment need to be searched together in
 
 ![Screenshot](img/workflow_normToMS2Proteins.png)
 
-In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermediate or final data output.
+In blue: MaxQuant output; in green: R-scripts; in orange: intermediate or final data output.
 
 
 
@@ -57,7 +57,7 @@ Note that all Thermo raw files of the experiment need to be searched together in
 
 ![Screenshot](img/workflow_normToMS3Proteins.png)
 
-In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermediate or final data output.
+In blue: MaxQuant output; in green: R-scripts; in orange: intermediate or final data output.
 
 
 
