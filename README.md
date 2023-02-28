@@ -4,11 +4,12 @@ An R implementation for site-to-protein normalization in MS2-based multiplex pro
 
 
 ## Dependencies
+
 This workflow builds on the methodology and computational tools of [interference modeling](https://github.com/moritzmadern/InterferenceModeling_in_MultiplexProteomics) in MS2-based multiplex proteomics.
 
 
 
-## Contents:
+## Contents
 
 - **Normalize_MS2SiteToProtein.Rmd** : R markdown script that performs the final step of the workflow: The normalization of PTM site abundances quantified via MS2-based quantification to underlying protein (i.e. unmodified peptides) abundances, quantified via a) MS2-based or b) MS3-based quantification. Reqires specific site and protein table input (e.g. feature-wise Estimated Interfernce Level (EIL) values, and more), hence the scripts below.
 
@@ -41,6 +42,7 @@ Note that all Thermo raw files of the experiment need to be searched together in
 In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermediate or final data output.
 
 
+
 ## Data Input [using MS3-quantified Poteins]
 
 - A modified PSM table **modified_PSM.txt**, the result table of [interference modeling](https://github.com/moritzmadern/InterferenceModeling_in_MultiplexProteomics) containing PSM level data of PTM-enriched measurements. By extension, the necessary input for the interference modeling workflow is required (e.g. Thermo raw files, MaxQuant's **msms.txt**, and more).
@@ -59,7 +61,7 @@ In blue: MaxQuant search engine output; in green: R-scripts; in orange: intermed
 
 
 
-## Data Output:
+## Data Output
 
 In both cases (i.e. normalization to either MS2-quantified proteins, or MS3-quantified proteins), the output comprises:
 
@@ -99,4 +101,25 @@ other attached packages:
 [37] ggplot2_3.3.6               tidyverse_1.3.1    
 ```
 
+
+
+## Used Libraries and other Resources
+
+- sva: Leek JT, Johnson WE, Parker HS, Fertig EJ, Jaffe AE, Zhang Y, Storey JD, Torres LC (2022). sva: Surrogate Variable Analysis. R package version 3.46.0.
+
+- Msnbase: Gatto, L. & Lilley, K. S. Msnbase-an R/Bioconductor package for isobaric tagged mass spectrometry data visualization, processing and quantitation. Bioinformatics 28, 288–289 (2012).
+
+- fields: Douglas Nychka, Reinhard Furrer, John Paige, S. S. (2021). “fields: Tools for spatial data.”
+
+- limma: Ritchie, M. E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Res. 43, e47 (2015).
+
+- DESeq2: Anders, S. & Huber, W. Differential expression analysis for sequence count data. Genome Biol. 11, R106 (2010).
+
+- msqrob2: Goeminne, L. J. E., Gevaert, K. & Clement, L. Peptide-level robust ridge regression improves estimation, sensitivity, and specificity in data-dependent quantitative label-free shotgun proteomics. Mol. Cell. Proteomics 15, 657–668 (2016).
+
+- MaxQuant: Tyanova, S., Temu, T. & Cox, J. The MaxQuant computational platform for mass spectrometry-based shotgun proteomics. Nat. Protoc. 11, 2301–2319 (2016).
+
+- plot3D: Soetaert, K. plot3D: Plotting Multi-Dimensional Data.
+
+- ggplot2: Wickham H (2016). ggplot2: Elegant Graphics for Data Analysis. (Springer-Verlag New York).
 
