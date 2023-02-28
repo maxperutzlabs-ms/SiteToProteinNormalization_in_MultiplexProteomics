@@ -11,7 +11,7 @@ This workflow builds on the methodology and computational tools of [interference
 
 ## Contents
 
-- **Normalize_MS2SiteToProtein.Rmd** : R markdown script that performs the final step of the workflow: The normalization of PTM site abundances quantified via MS2-based quantification to underlying protein (i.e. unmodified peptides) abundances, quantified via a) MS2-based or b) MS3-based quantification. Reqires specific site and protein table input (e.g. feature-wise Estimated Interfernce Level (EIL) values, and more), hence the scripts below.
+- **Normalize_MS2SiteToProtein.Rmd** : R markdown script that performs the final step of the workflow: The normalization of PTM site abundances quantified via MS2-based quantification to underlying protein (i.e. unmodified peptides) abundances, quantified via a) MS2-based or b) MS3-based quantification. Reqires specific site and protein input (i.e. tables containing feature-wise Estimated Interfernce Level (EIL) values, and more), hence the scripts below.
 
 - **functions_Site_To_Protein.R** : Functions required in Normalize_MS2SiteToProtein.Rmd script.
 
