@@ -35,7 +35,7 @@ This workflow builds on the methodology and computational tools of [interference
 
 - A MaxQuant protein table **proteinGroups.txt**.
 
-Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. A schematic representation of the entire workflow for quantified acetyl sites is summarized by this graph:
+Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. A schematic representation of the entire workflow for quantified acetyl sites normalized to MS2-quantified proteins is summarized by this graph:
 
 ![Screenshot](img/workflow_normToMS2Proteins.png)
 
@@ -53,7 +53,7 @@ In blue: MaxQuant output; in green: R-scripts; in orange: intermediate or final 
 
 - Optional: An isotopic impurity matrix for isotopic impurity correction of MS3-quantified protein intensities in proteinGroups.txt (unless performed by search engine).
 
-Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. A schematic representation of the entire workflow for quantified acetyl sites is summarized by this graph:
+Note that all Thermo raw files of the experiment need to be searched together in a single MaxQuant database search. This will generate ID columns in the MaxQuant output tables (PSM table, protein table, site table) that reference each other, which is essential to this workflow. A schematic representation of the entire workflow for quantified acetyl sites normalized to MS3-quantified proteins is summarized by this graph:
 
 ![Screenshot](img/workflow_normToMS3Proteins.png)
 
@@ -63,7 +63,7 @@ In blue: MaxQuant output; in green: R-scripts; in orange: intermediate or final 
 
 ## Data Output
 
-In both cases (i.e. normalization to either MS2-quantified proteins, or MS3-quantified proteins), the output comprises:
+In both cases (i.e. normalization to either MS2-quantified proteins or MS3-quantified proteins), the output comprises:
 
 - A **modified MaxQuant site table**, filtered for sites that could be normalized to corresponding protein level (i.e. unmodified peptides of the same proteins). Contains multiple intensity columns, which are already normalized between samples. These are: 
 Site intensities (no suffix), interference-adjusted site intensities (suffix `__IFadjust`), underlying protein intensities (suffix `__underlyingProtein`), interference-adjusted underlying protein intensities (suffix `__underlyingProtein_IFadjust`),
