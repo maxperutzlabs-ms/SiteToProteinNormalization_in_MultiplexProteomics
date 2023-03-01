@@ -69,7 +69,7 @@ norm_strategy <- "loess"
 groups_anova <- NULL
 
 ## Specify name of the output file string (without .txt extension). If NULL, will be named according to input file string
-output_name <- "processed_proteinGroups_MS3"
+output_name <- NULL
 
 
 ## Note: Parameters that are described as "Optional" can be ignored if certain steps are to be skipped. 

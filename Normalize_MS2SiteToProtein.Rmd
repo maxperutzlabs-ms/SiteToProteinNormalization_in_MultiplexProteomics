@@ -106,7 +106,7 @@ output_name = NULL
 ## 2) Parameters specific to protein table 
 
 ## Specify file path to protein table. This table should have been filtered already, and contain impurity corrected & normalized intensities (such that interference is expected to affect all channels uniformly). Additionally, a column providing feature-wise EIL values (aggregated from PSMs) is required for MS2-quantified proteins.
-filepath_proteinTable = "Results/processed_proteinGroups_MS3.txt"
+filepath_proteinTable = "Results/filtered_normalized_proteinGroups.txt"
 
 ## Specify reporter ion column pattern in proteins table (note: "log2 " must not be part of the pattern!)
 reporter_pattern_proteinTable = "Reporter[.]intensity"
@@ -270,7 +270,7 @@ heatmap_plot(m=t(scale(t(log2(m_proteins + 1)), scale=FALSE)),
          title="Heatmap proteins",
          type="standardized",
          samplenames = samplenames_siteTable,
-         plot_path = "Results/Heatmap_proteins_noBatchCorr.pdf")
+         plot_path = NULL)
 
 
 ## Check PCA. Save plot
@@ -280,7 +280,7 @@ PCA_plot(m=log2(m_proteins + 1),
          legend_colors = colors_groups,
          batch=NULL,
          samplenames = samplenames, title = "PCA proteins",
-         plot_path ="Results/PCA_proteins_noBatchCorr.pdf")
+         plot_path = NULL)
 
 
 ## Check normalization status
@@ -1109,7 +1109,7 @@ if (!is.null(batch)){
 ```
 
 
-```{r Export table df_sites_filtered}
+```{r Export results table}
 
 # If no output name was given, name resulting table based on input file's name
 if (is.null(output_name)){
@@ -1126,6 +1126,10 @@ write.table(df_sites_filtered, file = outputname_path, sep = "\t", col.names = T
 ## Report the export
 writeLines("The result table can be found in:")
 print(outputname_path)
+
+```
+
+```{r}
 
 ```
 

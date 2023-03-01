@@ -7,7 +7,7 @@ output: html_document
 
 Data input:
 1) modified PSM-table (output of "IM.Rmd" script)
-2) MaxQuant site table (e.g. "Acetyl (K)sites.txt)"
+2) MaxQuant site table (e.g. "Acetyl (K)sites.txt")
 
 Data output:
 1) modified site table (aggregated from PSMs)
@@ -123,7 +123,7 @@ df_PSM <- df_PSM[df_PSM$PPF >= ppf_threshold,]
 writeLines(paste0("\nPSMs after filtering based on PPF: ", nrow(df_PSM)))
 
 
-## print the PPF threshold used for filtering
+## Print the PPF threshold used for filtering
 writeLines(paste0("\nThe chosen PPF threshold used for filtering: ", ppf_threshold))
 
 ```
