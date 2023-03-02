@@ -129,19 +129,19 @@ writeLines("Filtering rows based on various criteria. Number of rows...")
 writeLines(paste0("Before filtering: ", nrow(df_feature)))
 df_feature <- df_feature[df_feature$Potential.contaminant == "",]
 df_feature <- df_feature[df_feature$Reverse=="",]
-writeLines(paste0("After filtering contaminants and reverse hits: ", nrow(df_feature)))
+writeLines(paste0("\nAfter filtering contaminants and reverse hits: ", nrow(df_feature)))
 
 
 ## Filter for at least 2 razor + unique peptides
 bool_keep <- df_feature$Razor...unique.peptides >= 2
 df_feature <- df_feature[bool_keep,]
-writeLines(paste0("After filtering for at least 2 razor+unique peptides: ", nrow(df_feature)))
+writeLines(paste0("\nAfter filtering for at least 2 razor+unique peptides: ", nrow(df_feature)))
 
 
 ## Filter out only identified by site
 bool_keep <- df_feature$Only.identified.by.site != "+"
 df_feature <- df_feature[bool_keep,]
-writeLines(paste0("After filtering out proteins only identified by site: ", nrow(df_feature)))
+writeLines(paste0("\nAfter filtering out proteins only identified by site: ", nrow(df_feature)))
 
 
 ## Check gene name column
@@ -333,10 +333,10 @@ for (i in 1:nrow(df_feature)){
 }
 
 
-## make barplot
+## Plot total intensities per channel
 barplot(colSums(m_agg_reporterInt), las=2, cex.names=0.8, las=2, col="grey", border="grey", main="Total intensities after aggregation")
 
-## merge the results with df_PSM
+## Merge the results with df_PSM
 df_feature <- cbind(df_feature, m_agg_reporterInt)
 df_feature$EIL <- v_agg_eil
 df_feature$PPF <- v_agg_ppf

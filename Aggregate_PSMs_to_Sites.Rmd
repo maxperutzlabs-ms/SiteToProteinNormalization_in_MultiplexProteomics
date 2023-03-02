@@ -382,10 +382,10 @@ for (i in 1:nrow(df_feature)){
 }
 
 
-## make barplot
+## Plot total intensities per channel
 barplot(colSums(m_agg_reporterInt), las=2, cex.names=0.8, las=2, col="grey", border="grey", main="Total intensities after aggregation")
 
-## merge the results with df_PSM
+## Merge the results with df_PSM
 df_feature <- cbind(df_feature, m_agg_reporterInt)
 df_feature$EIL <- v_agg_eil
 df_feature$PPF <- v_agg_ppf
@@ -404,7 +404,7 @@ barplot(table(df_feature$agg_control), border="grey", col="grey", ylab = "freque
 
 
 ## Perform filtering
-writeLines("Number of ites...")
+writeLines("Number of sites...")
 writeLines(paste0("Before integrating PSM-filters: ", nrow(df_feature)))
 df_feature <- df_feature[df_feature$agg_control == "+",]
 writeLines(paste0("After integrating PSM-filters: ", nrow(df_feature)))
