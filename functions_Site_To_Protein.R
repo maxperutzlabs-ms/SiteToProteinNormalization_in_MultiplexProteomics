@@ -17,9 +17,9 @@ PCA_plot <- function(m, groups, samplenames, batch, legend_colors, plot_path=NUL
   pca_res <- prcomp(t(m))
   rot_mat <- pca_res$rotation
   res_final <- as.matrix(scale(t(m), center=TRUE, scale=FALSE)) %*% rot_mat
-  eigenvectors <- pca_res$sdev^2
-  anteil_var_pca1 <- round(eigenvectors[1]/sum(eigenvectors),digits=3)
-  anteil_var_pca2 <- round(eigenvectors[2]/sum(eigenvectors),digits=3)
+  eigenvalues <- pca_res$sdev^2
+  anteil_var_pca1 <- round(eigenvalues[1]/sum(eigenvalues),digits=3)
+  anteil_var_pca2 <- round(eigenvalues[2]/sum(eigenvalues),digits=3)
   
   ## create groups
   groups <- factor(groups, levels=names(legend_colors))
