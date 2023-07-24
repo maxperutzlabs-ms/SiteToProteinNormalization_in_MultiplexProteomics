@@ -61,8 +61,8 @@ ppf_threshold = 0
 ## Specify the name of the ID column by which the site table refers to the PSM table.
 id_columnname_PSM_table = "id"
 
-## Specify the name of the column denoting the integer number of modifications for the respective precursor peptide of the PSM.
-number_modifications_columname = "Acetyl..K." 
+## Specify the column denoting the integer number of modifications for the respective precursor peptide of the PSM.
+number_modifications_colname = "Number.of.Acetyl..K." 
 
 ## Specify the name of the column containing the minimum recorded intensity in a PSM's MS2 scan.
 minIntensity_MS2_columnname = "minIntensity_MS2"
@@ -129,7 +129,7 @@ writeLines(paste0("\nThe chosen PPF threshold used for filtering: ", ppf_thresho
 ```
 
 
-```{r Read in site table and derive relevant objects. Also Filter out reverse and CONs, + based on score. Extract gene names from fasta if empty}
+```{r Read in site table and derive relevant objects. Also Filter out reverse and CONs, + based on score. Extract gene names from fasta if empty etc.}
 
 ## Read in feature table
 df_feature <- read.delim(filepath_feature_table, header=TRUE, sep="\t")
@@ -187,50 +187,10 @@ for (i in 1:length(fasta_headers_split)){
 df_feature$Gene.names <- gene_names
 writeLines(paste0("Number of Gene name entries that are empty after matching with fasta header: ", sum(df_feature$Gene.names == "")))
 
-```
 
-Important: For each site (=row) in the MaxQuant site table, MaxQuant lists three distinct intensity values per individual reporter ion channel. These correspond to different numbers of modifications per MaxQuant site. Sometimes, a site in the table lists intensities in in more than one of these channel types. For example, in a TMT10plex experiment, a MaxQuant site could sometimes list 20 intensity values in total; 10 for the single modified state, and another 10 for the double modified state. However, we would like to split them and analyse those two states per site separately. The following code block separates these values and extends the site table accordingly, thereby creating additional site (=row) entries, but each of them finally possessing exactly 1 intensity value per channel. Please note that this code does not account for changes in MaxQUant's column name notation. Adapt the regular expression patterns accordingly if necessary! There might be differences according to the MaxQuant version. Also note that like in the MaxQuant site table, this script continues to pool all PSMs pertaining to the same site (=row in the site table) with equal to or more than 3 modifications.
+## Add vector denoting the number of different modifications per site (based on specified parameter number_modifications_colname)
+df_feature$number_modifications <- df_feature[,number_modifications_colname]
 
-```{r Split the site table based on number of modifications, then report table of number of modifications per site (this is a MaxQuant characteristic in the stite table)}
-
-## Extract meta table (i.e. non-quantitative columns). Delete any remaining Intensity column (else there would be duplicates after this code block)
-df_meta <- df_feature[,!grepl(names(df_feature), pattern="___")] # grabs non-intensity columns
-df_meta <- df_meta[,!grepl(names(df_meta), pattern="Intensity")] # removes remaining intensity columns
-
-
-## Split non-meta data table into 3 parts based on the ending of columns (corresponding to number of modifications)
-df_1 <- df_feature[,grepl(names(df_feature), pattern="___1")] %>% cbind(df_meta,.)
-df_2 <- df_feature[,grepl(names(df_feature), pattern="___2")] %>% cbind(df_meta,.)
-df_3 <- df_feature[,grepl(names(df_feature), pattern="___3")] %>% cbind(df_meta,.)
-
-
-## Add an extra column denoting the number of modifications
-df_1 <- cbind(df_1, data.frame(number_modifications = 1))
-df_2 <- cbind(df_2, data.frame(number_modifications = 2))
-df_3 <- cbind(df_3, data.frame(number_modifications = 3))
-
-
-## Get rid of class pattern "___[1-3]" in column names
-names(df_1) <- sub(names(df_1), pattern="___1", replacement = "")
-names(df_2) <- sub(names(df_2), pattern="___2", replacement = "")
-names(df_3) <- sub(names(df_3), pattern="___3", replacement = "")
-
-
-## Rowbind the three data frames to a single data frame
-df_feature <- rbind(df_1, df_2, df_3)
-
-
-## Filter out rows completely empty in reporter intensity columns, then report number of sites again
-m_feature <- df_feature[,grepl(names(df_feature), pattern="Reporter[.]intensity")] %>% as.matrix()
-bool_keep <- apply(m_feature!=0, MARGIN = 1, FUN=any)
-df_feature <- df_feature[bool_keep,]
-
-## Report the number of sites after splitting
-writeLines("Number of features (rows) after splitting: ")
-print(nrow(df_feature))
-
-## Overview of number of modifications per site
-barplot(table(df_feature$number_modifications), border="grey", col="grey", ylab="frequency", xlab="number of modifications per site")
 
 ```
 
@@ -385,7 +345,8 @@ for (i in 1:nrow(df_feature)){
 ## Plot total intensities per channel
 barplot(colSums(m_agg_reporterInt), las=2, cex.names=0.8, las=2, col="grey", border="grey", main="Total intensities after aggregation")
 
-## Merge the results with df_PSM
+
+## Merge the results with df_feature
 df_feature <- cbind(df_feature, m_agg_reporterInt)
 df_feature$EIL <- v_agg_eil
 df_feature$PPF <- v_agg_ppf
