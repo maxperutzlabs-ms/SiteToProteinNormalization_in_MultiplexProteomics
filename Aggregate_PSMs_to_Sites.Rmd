@@ -22,6 +22,7 @@ Note: This script currently supports MaxQuant search engine output only.
 
 ## Load packages
 library(tidyverse)
+library(rlist)
 
 
 ## Create Results folder
@@ -61,8 +62,8 @@ ppf_threshold = 0
 ## Specify the name of the ID column by which the site table refers to the PSM table.
 id_columnname_PSM_table = "id"
 
-## Specify the column denoting the integer number of modifications for the respective precursor peptide of the PSM.
-number_modifications_colname = "Number.of.Acetyl..K." 
+## Specify the column denoting the integer number of modifications of interest for the respective precursor peptide of the PSM.
+number_modifications_columnname = "Acetyl..K." 
 
 ## Specify the name of the column containing the minimum recorded intensity in a PSM's MS2 scan.
 minIntensity_MS2_columnname = "minIntensity_MS2"
@@ -117,10 +118,20 @@ names(df_PSM)[names(df_PSM) == minIntensity_MS2_columnname] <- "minIntensity_MS2
 names(df_PSM)[names(df_PSM) == id_columnname_PSM_table] <- "id"
 
 
+## Rename number of modifications colname
+names(df_PSM)[names(df_PSM) == number_modifications_columnname] <- "number_modifications"
+
+
+## Perform filtering of PSMs that do not contain the specified modification
+writeLines(paste0("PSMs before filtering out PSMs without modification of interest: ", nrow(df_PSM)))
+df_PSM <- df_PSM[df_PSM$number_modifications >0,]
+writeLines(paste0("PSMs after filtering out PSMs without modification of interest: ", nrow(df_PSM)))
+
+
 ## Perform additional filtering of PSMs based on PPF
-writeLines(paste0("PSMs before filtering based on PPF: ", nrow(df_PSM)))
+writeLines(paste0("\nPSMs before filtering based on PPF: ", nrow(df_PSM)))
 df_PSM <- df_PSM[df_PSM$PPF >= ppf_threshold,]
-writeLines(paste0("\nPSMs after filtering based on PPF: ", nrow(df_PSM)))
+writeLines(paste0("PSMs after filtering based on PPF: ", nrow(df_PSM)))
 
 
 ## Print the PPF threshold used for filtering
@@ -187,9 +198,60 @@ for (i in 1:length(fasta_headers_split)){
 df_feature$Gene.names <- gene_names
 writeLines(paste0("Number of Gene name entries that are empty after matching with fasta header: ", sum(df_feature$Gene.names == "")))
 
+```
 
-## Add vector denoting the number of different modifications per site (based on specified parameter number_modifications_colname)
-df_feature$number_modifications <- df_feature[,number_modifications_colname]
+
+Note that MaxQuant's site table lists the intensities of sites (i.e. rows) in three distinct columns per channel (ending with "___1", "___2" and "___3", respecively) which correspond to different numbers of modifications on measured peptides. This script will also treat different numbers of modifications per site separately, but instead will add extra rows in the feature table for each unique recorded number of modification per site (see next code block). Consequently, some sites (i.e. rows) will be duplicated to create multiple rows, each resulting row listing its own set of PSM IDs that match the site but which all possess distinct numbers of modifications. 
+
+
+```{r Prepare aggregation by adding new rows for multiple modifications per site. Also update PSM-ID column (MS.MS.IDs) accordingly}
+
+## Prepare output list
+list_extendedFeatureTable <- list()
+
+
+## Go over each site (row) and add extra rows in case of multiple modifications (info comes from PSM table). One extra row for each unique number of modifications per site.
+for (i in 1:nrow(df_feature)){
+  
+  # extract feature i in site table
+  df_feature_i <- df_feature[i,]
+  
+  # extract corresponding PSM ids of for site i
+  psm_ids_i <- df_feature_i[,msms_id_columnname_feature_table]
+  
+  # split them at ";"
+  psm_ids_i <- strsplit(psm_ids_i, split=";")[[1]]
+  
+  # check if the feature really points to any PSMs in the PSM-table (might have been filtered out already). If not, skip to next site
+  df_PSM_i <- df_PSM[df_PSM$id %in% psm_ids_i,]
+  if (nrow(df_PSM_i)==0){ 
+    v_agg_control[i] <- "-"
+    next()
+  }
+  
+  # check the number of unique modification counts across all PSMs pertaining to that site
+  unique_mod_number_i <- df_PSM_i$number_modifications %>% unique() %>% sort()
+  
+  
+  # go over the unique modification numbers and create new site table rows for each one. Save in list_extendedFeatureTable
+  for (j in unique_mod_number_i){
+    
+    # extract PSM ids of PSMs with number of modifications j of site i
+    msms_ids_ij <- df_PSM_i[df_PSM_i$number_modifications  == j, id_columnname_PSM_table] %>% paste0(., collapse=";")
+    
+    # generate new feature table entry
+    df_feature_i_new <- df_feature_i
+    df_feature_i_new[,msms_id_columnname_feature_table] <- msms_ids_ij
+    df_feature_i_new$number_modifications <- j
+    
+    # store new feature table entry
+    list_extendedFeatureTable <- list.append(list_extendedFeatureTable, df_feature_i_new)
+  }
+}
+
+
+## unlist via rbind and store as new df_feature
+df_feature <- do.call(what=rbind, args=list_extendedFeatureTable)
 
 
 ```
