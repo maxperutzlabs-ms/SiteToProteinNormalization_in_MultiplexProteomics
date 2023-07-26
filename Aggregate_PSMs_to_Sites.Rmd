@@ -216,7 +216,7 @@ for (i in 1:nrow(df_feature)){
   # extract feature i in site table
   df_feature_i <- df_feature[i,]
   
-  # extract corresponding PSM ids of for site i
+  # extract corresponding PSM ids of site i
   psm_ids_i <- df_feature_i[,msms_id_columnname_feature_table]
   
   # split them at ";"
@@ -225,7 +225,6 @@ for (i in 1:nrow(df_feature)){
   # check if the feature really points to any PSMs in the PSM-table (might have been filtered out already). If not, skip to next site
   df_PSM_i <- df_PSM[df_PSM$id %in% psm_ids_i,]
   if (nrow(df_PSM_i)==0){ 
-    v_agg_control[i] <- "-"
     next()
   }
   
