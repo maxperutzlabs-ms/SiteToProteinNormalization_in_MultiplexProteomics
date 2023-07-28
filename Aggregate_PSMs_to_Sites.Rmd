@@ -256,7 +256,7 @@ df_feature <- do.call(what=rbind, args=list_extendedFeatureTable)
 ```
 
 
-```{r Optional: Perform aggregation of non-interference-corrected reporter ion intensities and EIL + PPF values from PSM table to site table based on PSM-ID reference column}
+```{r Perform aggregation of non-interference-corrected reporter ion intensities and EIL + PPF values from PSM table to site table based on PSM-ID reference column}
 
 ## Extract msms id column in feature table
 msms_id_pointer <- df_feature[,msms_id_columnname_feature_table]
