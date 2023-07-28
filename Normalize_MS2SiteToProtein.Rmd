@@ -586,7 +586,7 @@ print(samplenames)
 ```
 
 
-```{r OPTIONAL: Calculate batch-corrected site intensities via comBat, fig.width=3, fig.height=2}
+```{r OPTIONAL: Calculate batch-corrected site intensities via comBat}
 
 ## Check if batch was specified (i.e. not NULL)
 if (!is.null(batch)){
@@ -642,7 +642,7 @@ if (!is.null(batch)){
 ```
 
 
-```{r OPTIONAL: Calculate batch-corrected protein intensities via comBat, warning=FALSE, fig.width=3, fig.height=2}
+```{r OPTIONAL: Calculate batch-corrected protein intensities via comBat, warning=FALSE}
 
 ## Check if batch was specified (i.e. not NULL)
 if (!is.null(batch)){
@@ -698,7 +698,7 @@ if (!is.null(batch)){
 ```
 
 
-```{r OPTIONAL: Calculate batch-corrected site/protein ratios via comBat, warning=FALSE, fig.width=3, fig.height=2}
+```{r OPTIONAL: Calculate batch-corrected site/protein ratios via comBat, warning=FALSE}
 
 ## Check if batch was specified (i.e. not NULL)
 if (!is.null(batch)){
@@ -752,7 +752,7 @@ if (!is.null(batch)){
 ```
 
 
-```{r OPTIONAL: Calcuate batch-corrected IF-adjusted site/protein ratios via comBat, warning=FALSE, fig.width=3, fig.height=2}
+```{r OPTIONAL: Calcuate batch-corrected IF-adjusted site/protein ratios via comBat, warning=FALSE}
 
 ## Check if batch was specified (i.e. not NULL)
 if (!is.null(batch)){
