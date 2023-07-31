@@ -72,7 +72,7 @@ minIntensity_MS2_columnname = "minIntensity_MS2"
 substitute_NAs_with_min_intensity = FALSE
 
 ## Split site entries (i.e. rows in the site table) by number of modifications. This will create additional rows per unique site id if PSMs for that site list different unique numbers of modifications (e.g. 1-time acetylated, 2-time acetylated, etc.). The recommended setting is TRUE.
-split_sites_by_number_of_mods = FALSE
+split_sites_by_number_of_mods = TRUE
 
 
 
