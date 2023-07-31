@@ -71,7 +71,7 @@ minIntensity_MS2_columnname = "minIntensity_MS2"
 ## Specify if remaining NAs in PSM's reporter ion intensities should be imputed with the minimum MS2 intensity. Note that this can overestimate the real intensity! The recommended setting is FALSE (even though it leaves NAs in the data).
 substitute_NAs_with_min_intensity = FALSE
 
-## Split site entries (i.e. rows in the site table) by number of modifications. This will create additional rows per unique site id if PSMs for that site list different unique numbers of modifications (e.g. 1-time acetylated, 2-time acetylated, etc.). The recommended setting is TRUE.
+## Specify whether to split site entries (i.e. rows in the site table) by number of modifications. If TRUE, this will create additional rows per unique site id if PSMs for that site list different unique numbers of modifications (e.g. 1-time acetylated, 2-time acetylated, etc.). The recommended setting is TRUE.
 split_sites_by_number_of_mods = TRUE
 
 
