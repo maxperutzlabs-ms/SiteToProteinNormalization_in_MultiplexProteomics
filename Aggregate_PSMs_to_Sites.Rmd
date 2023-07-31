@@ -41,7 +41,7 @@ wd <- getwd()
 
 ## 1) Parameters specific to the PSM table:
 
-## Specify file path to PSM table containing: a) reporter ion intensity columns (impurity-corrected and normalized); b) columns providing feature-wise EIL-values (estimated interference level) and PPF-values (precursor purity fraction); a unique ID by which other tables (i.e. Site table) refer to it.
+## Specify file path to PSM table containing: A) reporter ion intensity columns (impurity-corrected and normalized); B) columns providing feature-wise EIL-values (estimated interference level) and PPF-values (precursor purity fraction); C) a unique ID by which other tables (i.e. Site table) refer to it.
 filepath_PSM_table = "Results/modified_PSM.txt"
 
 ## Specify non interference-corrected reporter ion column name pattern in PSM table (expected to be isotopic impurity-corrected and normalized).
@@ -50,7 +50,7 @@ reporter_pattern_PSM = "reporters_[0-9]*(|N|C)_norm$"
 ## Specify interference-corrected reporter ion column name pattern in PSM table (expected to be isotopic impurity-corrected and normalized).
 reporter_pattern_PSM_interference_corrected = "reporters_[0-9]*(|N|C)_norm__interference_corrected$"
 
-## Specify EIL column name in PSM table
+## Specify EIL column name in PSM table.
 eil_columnname = "EIL"
 
 ## Specify PPF column name in PSM table.
@@ -88,7 +88,7 @@ msms_id_columnname_feature_table = "MS.MS.IDs"
 ## Specify minimum site score threshold. Sites with lower score will be filtered out.
 score_threshold_feature_table = 0
 
-## Specify minimum top 3 average intensity filter threshold .
+## Specify minimum top 3 average intensity filter threshold.
 top3_threshold_feature_table = 0
 
 
