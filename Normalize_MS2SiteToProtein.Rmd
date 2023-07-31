@@ -59,8 +59,8 @@ if (!file.exists("Results")){
 ## Specify file path to sites table. This table should have been filtered already, and contain impurity corrected & normalized intensities (such that interference is expected to affect all channels uniformly). Additionally, a column providing feature-wise EIL values (aggregated from PSMs) is required.
 filepath_siteTable = "Results/aggregated_Acetyl (K)Sites.txt"
 
-## Specify column pattern of impurity-corrected and normalized reporter ion intensities in sites table (per default: "__aggregated" from previous script!)
-reporter_pattern_siteTable = "__aggregated"
+## Specify column pattern of impurity-corrected and normalized reporter ion intensities in sites table (per default: "norm__aggregated" from previous script!)
+reporter_pattern_siteTable = "norm__aggregated"
 
 ## Specify sample groups in site table as a character vector. Should match the order of the intensity columns in the site table.
 groups_siteTable <- c("Group0", "Group6", "Group0", "Group6", "Group0", "Group6", "Group9", "Group12", "Group9", "Group12", "Group9", "Group12")
