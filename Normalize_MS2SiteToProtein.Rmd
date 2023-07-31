@@ -68,7 +68,7 @@ groups_siteTable <- c("Group0", "Group6", "Group0", "Group6", "Group0", "Group6"
 ## Specify sample names in site table as a character vector. Should match the order of the intensity column in the site table.
 samplenames_siteTable <- c("Group0.1", "Group6.1", "Group0.2", "Group6.2", "Group0.3", "Group6.3", "Group9.1", "Group12.1", "Group9.2", "Group12.2", "Group9.3", "Group12.3")
 
-# Specify reordering and/or subselection of samples by sample names in site table (If no reordering and/or subselecting is needed, set as NULL).  Use this to only (!) kick out empty channels (i.e. channels not used for labeling in experiment, but are nonetheless present as intensity columns), or to reorder sample order if wanted.
+# Specify reordering and/or subselection of non-empty samples by sample names in site table. If no reordering and/or subselecting is needed, set as NULL. For the procedure to work as intended, do not omit any non-empty channel here (e.g. "reference channel" or "boost channel") when specifying this parameter - even if those channels are not needed in the final analysis. To kick out non-empty channels, instead see parameter "samplenames_kick" below.
 samplenames_siteTable_reordered <- c("Group0.1", "Group0.2", "Group0.3", 
                                      "Group6.1","Group6.2", "Group6.3",
                                      "Group9.1", "Group9.2", "Group9.3",
@@ -92,7 +92,7 @@ renormalize_sites = FALSE
 ## Optional: Specify which re-normalization strategy should be used (Accepted input: "loess" or "DESeq"). Only relevant if renormalize_sites = TRUE
 renorm_strategy = "loess"
 
-## Optional: Specify sample names as character vector that are non-empty (i.e. labeled) but should be kicked out (e.g. reference channels, outliers, etc.) for the subsequent analysis. Importantly, the specified samples are kicked only after the interference adjustment step, prior to site-to-protein normalization.
+## Optional: Specify sample names as character vector that are non-empty (i.e. labeled) but should be kicked out (e.g. reference channels, outliers, boost channels, etc.) in the final output table.
 samplenames_kick = c("Group0.1", "Group0.2", "Group0.3")
 
 ## Optional: specify output name of resulting data (omit file ending!). If NULL, result will be saved with prefix "SiteToProtein_normalized_" and further named based on input site table.
@@ -557,7 +557,7 @@ df_sites_filtered <- cbind(df_sites_filtered, m_siteToProtein, m_siteToProtein_I
 ```
 
 
-```{r Kick out reference channel samples, or other samples that are not relevant for the analysis (e.g. missing group or batch label) as specified via parameter samplenames_kick}
+```{r Kick out reference channel samples, or other non-empty channels that are not relevant for the analysis (e.g. missing group or batch label) as specified via parameter samplenames_kick}
 
 ## Report samplenames before removal
 writeLines("Samplenames before removal:")
