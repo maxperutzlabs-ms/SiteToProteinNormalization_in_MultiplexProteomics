@@ -68,8 +68,11 @@ number_modifications_columnname = "Acetyl..K."
 ## Specify the name of the column containing the minimum recorded intensity in a PSM's MS2 scan.
 minIntensity_MS2_columnname = "minIntensity_MS2"
 
-## Specify if remaining NAs in PSM's reporter ion intensities should be substituted with the minimum MS2 intensity.
+## Specify if remaining NAs in PSM's reporter ion intensities should be imputed with the minimum MS2 intensity. Note that this can overestimate the real intensity! The recommended setting is FALSE (even though it leaves NAs in the data).
 substitute_NAs_with_min_intensity = FALSE
+
+## Split site entries (i.e. rows in the site table) by number of modifications. This will create additional rows per unique site id if PSMs for that site list different unique numbers of modifications (e.g. 1-time acetylated, 2-time acetylated, etc.). The recommended setting is TRUE.
+split_sites_by_number_of_mods = FALSE
 
 
 
@@ -194,6 +197,7 @@ for (i in 1:length(fasta_headers_split)){
   gene_names[i] <- ifelse(length(gene_names_i)>0, yes=gene_names_i, no="")
 }
 
+
 ## Replace old vector with new gene name vector
 df_feature$Gene.names <- gene_names
 writeLines(paste0("Number of Gene name entries that are empty after matching with fasta header: ", sum(df_feature$Gene.names == "")))
@@ -204,7 +208,7 @@ writeLines(paste0("Number of Gene name entries that are empty after matching wit
 Note that MaxQuant's site table lists the intensities of sites (i.e. rows) in three distinct columns per channel (ending with "___1", "___2" and "___3", respecively) which correspond to different numbers of modifications on measured peptides. This script will also treat different numbers of modifications per site separately, but instead will add extra rows in the feature table for each unique recorded number of modification per site (see next code block). Consequently, some sites (i.e. rows) will be duplicated to create multiple rows, each resulting row listing its own set of PSM IDs that match the site but which all possess distinct numbers of modifications. 
 
 
-```{r Prepare aggregation by adding new rows for multiple modifications per site. Also update PSM-ID column (MS.MS.IDs) accordingly}
+```{r Prepare aggregation and update PSM-ID column (MS.MS.IDs) in case of splitting sites by number of modifications}
 
 ## Prepare output list
 list_extendedFeatureTable <- list()
@@ -228,9 +232,16 @@ for (i in 1:nrow(df_feature)){
     next()
   }
   
-  # check the number of unique modification counts across all PSMs pertaining to that site
+  # infer the number of unique modification counts across all PSMs pertaining to that site
   unique_mod_number_i <- df_PSM_i$number_modifications %>% unique() %>% sort()
   
+  # check whether splitting by number of modifications is desired (via parameter split_sites_by_number_of_mods). 
+  if (!split_sites_by_number_of_mods){
+    df_feature_i_new <- df_feature_i
+    df_feature_i_new$number_modifications <- paste0(unique_mod_number_i, collapse=";")
+    list_extendedFeatureTable <- list.append(list_extendedFeatureTable, df_feature_i_new)
+    next()
+  }
   
   # go over the unique modification numbers and create new site table rows for each one. Save in list_extendedFeatureTable
   for (j in unique_mod_number_i){
@@ -238,7 +249,7 @@ for (i in 1:nrow(df_feature)){
     # extract PSM ids of PSMs with number of modifications j of site i
     msms_ids_ij <- df_PSM_i[df_PSM_i$number_modifications  == j, id_columnname_PSM_table] %>% paste0(., collapse=";")
     
-    # generate new feature table entry
+    # generate new feature table entry with modified values
     df_feature_i_new <- df_feature_i
     df_feature_i_new[,msms_id_columnname_feature_table] <- msms_ids_ij
     df_feature_i_new$number_modifications <- j
@@ -249,7 +260,7 @@ for (i in 1:nrow(df_feature)){
 }
 
 
-## unlist via rbind and store as new df_feature
+## Unlist via rbind and store as new df_feature
 df_feature <- do.call(what=rbind, args=list_extendedFeatureTable)
 
 
@@ -274,10 +285,6 @@ v_agg_eil <- numeric(nrow(df_feature))
 v_agg_ppf <- numeric(nrow(df_feature))
 
 
-## Initiate vector indicating whether PSMs for the respective site could be found in the PSM table
-v_agg_control <- rep("+", times=nrow(df_feature))
-
-
 ## Go over each site i in df_feature and aggregate their reporter intensities + EIL values  + PPF values from the PSM-table
 for (i in 1:nrow(df_feature)){
   
@@ -290,7 +297,6 @@ for (i in 1:nrow(df_feature)){
   # check if the feature really points to PSMs in the PSM-table
   df_PSM_i <- df_PSM[df_PSM$id %in% psm_ids_i,]
   if (nrow(df_PSM_i)==0){ 
-    v_agg_control[i] <- "-"
     next()
   }
   
@@ -331,7 +337,6 @@ barplot(colSums(m_agg_reporterInt), las=2, cex.names=0.8, col="grey", border="gr
 df_feature <- cbind(df_feature, m_agg_reporterInt)
 df_feature$EIL <- v_agg_eil
 df_feature$PPF <- v_agg_ppf
-df_feature$agg_control <- v_agg_control
 
 ```
 
@@ -354,10 +359,6 @@ v_agg_eil <- numeric(nrow(df_feature))
 v_agg_ppf <- numeric(nrow(df_feature))
 
 
-## Initiate vector indicating whether PSMs for the respective site could be found in the PSM table
-v_agg_control <- rep("+", times=nrow(df_feature))
-
-
 ## Go over each site i in df_feature and aggregate their reporter intensities + EIL values  + PPF values from the PSM-table
 for (i in 1:nrow(df_feature)){
   
@@ -370,7 +371,6 @@ for (i in 1:nrow(df_feature)){
   # check if the feature really points to PSMs in the PSM-table
   df_PSM_i <- df_PSM[df_PSM$id %in% psm_ids_i,]
   if (nrow(df_PSM_i)==0){ 
-    v_agg_control[i] <- "-"
     next()
   }
   
@@ -411,28 +411,9 @@ barplot(colSums(m_agg_reporterInt), las=2, cex.names=0.8, las=2, col="grey", bor
 df_feature <- cbind(df_feature, m_agg_reporterInt)
 df_feature$EIL <- v_agg_eil
 df_feature$PPF <- v_agg_ppf
-df_feature$agg_control <- v_agg_control
 
 ```
 
-
-```{r Filter out sites arising from previously filtered PSMs }
-
-## Note: This step filters out sites that wholly derive from PSMs which have previously been filtered out in the PSM table (due to, for example: 0 isobaric labels (i.e. unlabeled); second peptides; insufficient PPF, insufficient valid values per Group)
-
-
-## Get an overview of how much is filtered out
-barplot(table(df_feature$agg_control), border="grey", col="grey", ylab = "frequency", xlab="passed filter", main="Overview of filtering")
-
-
-## Perform filtering
-writeLines("Number of sites...")
-writeLines(paste0("Before integrating PSM-filters: ", nrow(df_feature)))
-df_feature <- df_feature[df_feature$agg_control == "+",]
-writeLines(paste0("After integrating PSM-filters: ", nrow(df_feature)))
-
-```
- 
  
 ```{r Filter out sites that do not pass a minimum average top3 intensity threshold}
 
