@@ -1071,6 +1071,36 @@ df_sites_filtered$max_abs_log2_FC_siteToProtein_IFadjust <- apply(m_siteToProtei
 ```
 
 
+```{r OPTIONAL: Perform ANOVA DE-testing for differences in batch-corrected site intensities, message=FALSE, warning=FALSE}
+
+if (!is.null(batch)){
+  
+## Extract data (site intensities), then test for differences between groups via ANOVA
+m <-  df_sites_filtered[,paste0(samplenames, "__batchCorr")] %>% as.matrix() %>% log2()
+df_sites_filtered$pval_ANOVA__batchCorr <- apply(m, MARGIN = 1,FUN=function(x){
+                        x <- as.numeric(x)
+                        res <- aov(x ~ groups)
+                        if (!is.null(summary(res)[[1]]$"Pr(>F)"[1])){
+                          return(summary(res)[[1]]$"Pr(>F)"[1]) 
+                        } else {return (NA)}
+                      })
+
+
+## Plot results
+ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA__batchCorr, breaks=seq(0,1, length.out=20))) %>% max()
+hist(df_sites_filtered$pval_ANOVA__batchCorr, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site intensities", ylim=c(0,ymax_pval))
+df_sites_filtered$adj.pval_ANOVA__batchCorr <- p.adjust(df_sites_filtered$pval_ANOVA__batchCorr, method = "BH")
+hist(df_sites_filtered$adj.pval_ANOVA__batchCorr, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site intensities")
+
+
+## Print results after multiple testing correction
+n_adj.pval_smaller0.05 <- sum(df_sites_filtered$adj.pval_ANOVA__batchCorr < 0.05)
+writeLines(paste0("Number of significant features after multiple testing correction (ANOVA adj.pval < 0.05):  ", n_adj.pval_smaller0.05))
+}
+
+```
+
+
 ```{r OPTIONAL: Perform ANOVA DE-testing for differences in IF-adjusted batch-corrected site/protein ratios. Also add maximum log2 FC column, message=FALSE, warning=FALSE}
 
 if (!is.null(batch)){
