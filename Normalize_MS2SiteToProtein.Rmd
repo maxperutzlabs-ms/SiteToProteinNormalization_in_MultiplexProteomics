@@ -453,7 +453,7 @@ df_sites_filtered <- cbind(df_sites_filtered, m_sites_IFadjust, m_underlying_pro
 ```
 
 
-```{r OPTIONAL: Renormalize site and IF-adjusted site intensities, warning=FALSE, fig.width=4, fig.height=1.5}
+```{r OPTIONAL: Renormalize site and IF-adjusted site intensities, warning=FALSE}
 
 ## Perform re-normalization of site intensities and interference-adjusted site intensities if specified
 if (renormalize_sites){
