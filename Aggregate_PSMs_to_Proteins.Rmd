@@ -77,10 +77,6 @@ filepath_feature_table =  "proteinGroups.txt"
 ## Specify the PSM ID column name in the protein table (e.g. "MS MS IDs" column in MaxQuant's "proteinGroups.txt"). This column points to the IDs of every PSM that counts to the aggregated feature (separated by ";"). Based on this information, aggregation is performed.
 msms_id_columnname_feature_table = "MS.MS.IDs" 
 
-## Specify minimum top 3 average intensity filter threshold.
-top3_threshold_feature_table = 0
-
-
 ```
 
 
