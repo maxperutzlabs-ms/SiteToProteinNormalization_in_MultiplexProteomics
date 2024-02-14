@@ -997,9 +997,9 @@ df_sites_filtered$pval_ANOVA <- apply(m, MARGIN = 1,FUN=function(x){
 
 ## Plot results
 ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA, breaks=seq(0,1, length.out=20))) %>% max()
-hist(df_sites_filtered$pval_ANOVA, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site intensities", ylim=c(0,ymax_pval))
+hist(df_sites_filtered$pval_ANOVA, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site intensities", ylim=c(0,ymax_pval), xlim=c(0,1))
 df_sites_filtered$adj.pval_ANOVA <- p.adjust(df_sites_filtered$pval_ANOVA, method = "BH")
-hist(df_sites_filtered$adj.pval_ANOVA, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site intensities")
+hist(df_sites_filtered$adj.pval_ANOVA, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site intensities", xlim=c(0,1))
 
 
 ## Print results after multiple testing correction
@@ -1024,9 +1024,9 @@ df_sites_filtered$pval_ANOVA_siteToProtein <- apply(m_siteToProtein, MARGIN = 1,
 
 ## Plot results
 ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA, breaks=seq(0,1, length.out=20))) %>% max()
-hist(df_sites_filtered$pval_ANOVA_siteToProtein, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein ratios", ylim=c(0,ymax_pval))
+hist(df_sites_filtered$pval_ANOVA_siteToProtein, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein ratios", ylim=c(0,ymax_pval), xlim=c(0,1))
 df_sites_filtered$adj.pval_ANOVA_siteToProtein <- p.adjust(df_sites_filtered$pval_ANOVA_siteToProtein, method = "BH")
-hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein ratios")
+hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein ratios", xlim=c(0,1))
 
 
 ## Print results after multiple testing correction
@@ -1051,9 +1051,9 @@ df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust <- apply(m_siteToProtein_IFa
 
 ## Plot results
 ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA, breaks=seq(0,1, length.out=20))) %>% max()
-hist(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein IF-adjusted ratios", ylim=c(0,ymax_pval))
+hist(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein IF-adjusted ratios", ylim=c(0,ymax_pval), xlim=c(0,1))
 df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust <- p.adjust(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust, method = "BH")
-hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein IF-adjusted ratios")
+hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein IF-adjusted ratios", xlim=c(0,1))
 
 
 ## Print results after multiple testing correction
@@ -1088,9 +1088,9 @@ df_sites_filtered$pval_ANOVA__batchCorr <- apply(m, MARGIN = 1,FUN=function(x){
 
 ## Plot results
 ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA__batchCorr, breaks=seq(0,1, length.out=20))) %>% max()
-hist(df_sites_filtered$pval_ANOVA__batchCorr, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site intensities", ylim=c(0,ymax_pval))
+hist(df_sites_filtered$pval_ANOVA__batchCorr, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site intensities", ylim=c(0,ymax_pval), xlim=c(0,1))
 df_sites_filtered$adj.pval_ANOVA__batchCorr <- p.adjust(df_sites_filtered$pval_ANOVA__batchCorr, method = "BH")
-hist(df_sites_filtered$adj.pval_ANOVA__batchCorr, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site intensities")
+hist(df_sites_filtered$adj.pval_ANOVA__batchCorr, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site intensities", xlim=c(0,1))
 
 
 ## Print results after multiple testing correction
@@ -1118,9 +1118,9 @@ if (!is.null(batch)){
   
   ## Plot results
   ymax_pval <- table(cut(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust__batchCorr, breaks=seq(0,1, length.out=20))) %>% max()
-  hist(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust__batchCorr, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein IF-adjusted ratios (batch-corrected)", ylim=c(0,ymax_pval))
+  hist(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust__batchCorr, breaks=20, col="grey", border="grey", xlab="p-value", main="ANOVA site/protein IF-adjusted ratios (batch-corrected)", ylim=c(0,ymax_pval), xlim=c(0,1))
   df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust__batchCorr <- p.adjust(df_sites_filtered$pval_ANOVA_siteToProtein_IFadjust__batchCorr, method = "BH")
-  hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust__batchCorr, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein IF-adjusted ratios (batch-corrected)")
+  hist(df_sites_filtered$adj.pval_ANOVA_siteToProtein_IFadjust__batchCorr, breaks=20, col="orange", border="orange", xlab="adj.p-value", main="ANOVA site/protein IF-adjusted ratios (batch-corrected)", xlim=c(0,1))
   
   
   ## Print results after multiple testing correction
